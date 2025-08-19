@@ -20,17 +20,33 @@ class ChecklistEditorViewModel @Inject constructor(
 
     fun loadNote(noteId: String) {
         viewModelScope.launch {
-            _state.update { it.copy(noteId = noteId, isLoading = true) }
+            if (noteId == "new") {
+                // Create a new checklist note
+                val result = repository.createNote("CHECKLIST", "New Checklist")
+                result.onSuccess { newNoteId ->
+                    _state.update {
+                        it.copy(
+                            noteId = newNoteId,
+                            title = "New Checklist",
+                            items = emptyList(),
+                            isLoading = false
+                        )
+                    }
+                }
+            } else {
+                // Load existing note
+                _state.update { it.copy(noteId = noteId, isLoading = true) }
 
-            val note = repository.getNoteById(noteId)
-            val items = repository.getChecklistItems(noteId)
+                val note = repository.getNoteById(noteId)
+                val items = repository.getChecklistItems(noteId)
 
-            _state.update { currentState ->
-                currentState.copy(
-                    title = note?.title ?: "",
-                    items = items,
-                    isLoading = false
-                )
+                _state.update { currentState ->
+                    currentState.copy(
+                        title = note?.title ?: "",
+                        items = items,
+                        isLoading = false
+                    )
+                }
             }
         }
     }

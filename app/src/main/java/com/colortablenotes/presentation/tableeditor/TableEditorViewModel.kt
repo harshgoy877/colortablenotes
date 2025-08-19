@@ -20,30 +20,53 @@ class TableEditorViewModel @Inject constructor(
 
     fun loadNote(noteId: String) {
         viewModelScope.launch {
-            _state.update { it.copy(noteId = noteId, isLoading = true) }
-
-            val note = repository.getNoteById(noteId)
-            val flatCells = repository.getTableCells(noteId)
-
-            // Build rows from flat list
-            val maxRow = flatCells.maxByOrNull { it.rowIndex }?.rowIndex ?: 2
-            val maxCol = flatCells.maxByOrNull { it.colIndex }?.colIndex ?: 2
-            val rows = (0..maxRow).map { r ->
-                (0..maxCol).map { c ->
-                    flatCells.find { it.rowIndex == r && it.colIndex == c }
-                        ?: cellAt(r, c, noteId)
+            if (noteId == "new") {
+                // Create a new table note
+                val result = repository.createNote("TABLE", "New Table")
+                result.onSuccess { newNoteId ->
+                    // Create initial 3x3 table
+                    val initialRows = List(3) { row ->
+                        List(3) { col ->
+                            cellAt(row, col, newNoteId)
+                        }
+                    }
+                    _state.update {
+                        it.copy(
+                            noteId = newNoteId,
+                            title = "New Table",
+                            rows = initialRows,
+                            isLoading = false
+                        )
+                    }
                 }
-            }
+            } else {
+                // Load existing note
+                _state.update { it.copy(noteId = noteId, isLoading = true) }
 
-            _state.update { current ->
-                current.copy(
-                    title = note?.title ?: "",
-                    rows = rows,
-                    isLoading = false
-                )
+                val note = repository.getNoteById(noteId)
+                val flatCells = repository.getTableCells(noteId)
+
+                // Build rows from flat list
+                val maxRow = flatCells.maxByOrNull { it.rowIndex }?.rowIndex ?: 2
+                val maxCol = flatCells.maxByOrNull { it.colIndex }?.colIndex ?: 2
+                val rows = (0..maxRow).map { r ->
+                    (0..maxCol).map { c ->
+                        flatCells.find { it.rowIndex == r && it.colIndex == c }
+                            ?: cellAt(r, c, noteId)
+                    }
+                }
+
+                _state.update { current ->
+                    current.copy(
+                        title = note?.title ?: "",
+                        rows = rows,
+                        isLoading = false
+                    )
+                }
             }
         }
     }
+
 
     fun onEvent(event: TableEditorEvent) {
         when (event) {

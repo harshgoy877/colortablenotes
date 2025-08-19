@@ -1,49 +1,82 @@
 package com.colortablenotes.presentation.navigation
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.colortablenotes.presentation.home.HomeScreen
+import com.colortablenotes.presentation.texteditor.TextEditorScreen
+import com.colortablenotes.presentation.checklisteditor.ChecklistEditorScreen
+import com.colortablenotes.presentation.tableeditor.TableEditorScreen
+import com.colortablenotes.presentation.search.SearchScreen
 
 @Composable
 fun NotesNavigation(
-    handleSharedText: (String) -> Unit = {}
+    handleSharedText: (String) -> Unit = {},
+    navController: NavHostController = rememberNavController()
 ) {
-    val navController = rememberNavController()
-
     NavHost(
         navController = navController,
         startDestination = "home"
     ) {
         composable("home") {
-            // Simple home screen for now
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "ColorTable Notes",
-                    style = MaterialTheme.typography.headlineMedium
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Your notes app is ready!",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Database and architecture successfully configured.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
+            HomeScreen(
+                onCreateNote = { type ->
+                    when (type) {
+                        "TEXT" -> navController.navigate("text_editor/new")
+                        "CHECKLIST" -> navController.navigate("checklist_editor/new")
+                        "TABLE" -> navController.navigate("table_editor/new")
+                    }
+                },
+                onOpenNote = { noteId, type ->
+                    when (type) {
+                        "TEXT" -> navController.navigate("text_editor/$noteId")
+                        "CHECKLIST" -> navController.navigate("checklist_editor/$noteId")
+                        "TABLE" -> navController.navigate("table_editor/$noteId")
+                    }
+                },
+                onSearchClick = {
+                    navController.navigate("search")
+                }
+            )
+        }
+
+        composable("search") {
+            SearchScreen(
+                onBack = { navController.popBackStack() },
+                onOpenNote = { noteId, type ->
+                    when (type) {
+                        "TEXT" -> navController.navigate("text_editor/$noteId")
+                        "CHECKLIST" -> navController.navigate("checklist_editor/$noteId")
+                        "TABLE" -> navController.navigate("table_editor/$noteId")
+                    }
+                }
+            )
+        }
+
+        composable("text_editor/{noteId}") { backStackEntry ->
+            val noteId = backStackEntry.arguments?.getString("noteId") ?: "new"
+            TextEditorScreen(
+                noteId = noteId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("checklist_editor/{noteId}") { backStackEntry ->
+            val noteId = backStackEntry.arguments?.getString("noteId") ?: "new"
+            ChecklistEditorScreen(
+                noteId = noteId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("table_editor/{noteId}") { backStackEntry ->
+            val noteId = backStackEntry.arguments?.getString("noteId") ?: "new"
+            TableEditorScreen(
+                noteId = noteId,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }
