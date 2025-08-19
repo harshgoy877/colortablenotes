@@ -41,9 +41,9 @@ fun HomeScreen(
         },
         floatingActionButton = {
             SpeedDialFAB(
-                onCreateText = { onCreateNote("TEXT") },
-                onCreateChecklist = { onCreateNote("CHECKLIST") },
-                onCreateTable = { onCreateNote("TABLE") }
+                onCreateTextNote = { onCreateNote("TEXT") }, // FIXED: Correct parameter name
+                onCreateChecklistNote = { onCreateNote("CHECKLIST") }, // FIXED: Correct parameter name
+                onCreateTableNote = { onCreateNote("TABLE") } // FIXED: Correct parameter name
             )
         }
     ) { paddingValues ->
@@ -54,7 +54,6 @@ fun HomeScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // FIXED: Use proper paging items syntax
             items(
                 count = notes.itemCount,
                 key = notes.itemKey { it.id },

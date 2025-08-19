@@ -12,7 +12,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.colortablenotes.data.local.entities.TableCell
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,7 +23,7 @@ fun TableEditorScreen(
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(noteId) {
-        viewModel.loadTable(noteId)
+        viewModel.loadNote(noteId)
     }
 
     Scaffold(
@@ -37,19 +36,32 @@ fun TableEditorScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.onEvent(TableEvent.Save) }) {
+                    IconButton(onClick = { viewModel.onEvent(TableEditorEvent.Save) }) {
                         Icon(Icons.Default.Save, contentDescription = "Save")
                     }
                 }
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding).padding(16.dp)) {
-            Row {
-                Button(onClick = { viewModel.onEvent(TableEvent.AddRow) }) { Text("Add Row") }
-                Spacer(Modifier.width(8.dp))
-                Button(onClick = { viewModel.onEvent(TableEvent.AddColumn) }) { Text("Add Col") }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(onClick = { viewModel.onEvent(TableEditorEvent.AddRow) }) {
+                    Text("Add Row")
+                }
+                Button(onClick = { viewModel.onEvent(TableEditorEvent.AddColumn) }) {
+                    Text("Add Column")
+                }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxSize()
@@ -61,8 +73,10 @@ fun TableEditorScreen(
                         itemsIndexed(row) { colIndex, cell ->
                             OutlinedTextField(
                                 value = cell.text,
-                                onValueChange = {
-                                    viewModel.onEvent(TableEvent.UpdateCell(cell.copy(text = it)))
+                                onValueChange = { newText ->
+                                    viewModel.onEvent(
+                                        TableEditorEvent.UpdateCell(rowIndex, colIndex, newText)
+                                    )
                                 },
                                 modifier = Modifier.width(100.dp)
                             )

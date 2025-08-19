@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "53ff4fb17ff7726c61735876997ffb48",
+    "identityHash": "c25c3a0f7f14b96b28f4c361bdbb95ca",
     "entities": [
       {
         "tableName": "notes",
@@ -215,7 +215,17 @@
             "id"
           ]
         },
-        "indices": [],
+        "indices": [
+          {
+            "name": "index_table_cells_note_id",
+            "unique": false,
+            "columnNames": [
+              "note_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_table_cells_note_id` ON `${TABLE_NAME}` (`note_id`)"
+          }
+        ],
         "foreignKeys": [
           {
             "table": "notes",
@@ -288,7 +298,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '53ff4fb17ff7726c61735876997ffb48')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c25c3a0f7f14b96b28f4c361bdbb95ca')"
     ]
   }
 }
