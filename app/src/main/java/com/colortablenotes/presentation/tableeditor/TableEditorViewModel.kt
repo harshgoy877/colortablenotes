@@ -2,81 +2,127 @@ package com.colortablenotes.presentation.tableeditor
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.colortablenotes.data.local.entities.TableCell
 import com.colortablenotes.data.repository.NotesRepository
+import com.colortablenotes.data.local.entities.TableCell
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.UUID // ADDED: Missing UUID import
 import javax.inject.Inject
-import kotlin.math.max
 
 @HiltViewModel
 class TableEditorViewModel @Inject constructor(
     private val repository: NotesRepository
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(TableState())
-    val state: StateFlow<TableState> = _state.asStateFlow()
+    private val _state = MutableStateFlow(TableEditorState())
+    val state: StateFlow<TableEditorState> = _state.asStateFlow()
 
-    fun loadTable(noteId: String) {
+    fun loadNote(noteId: String) {
         viewModelScope.launch {
-            val cells = repository.getTableCells(noteId)
-            val maxRow = (cells.maxOfOrNull { it.rowIndex } ?: -1) + 1
-            val maxCol = (cells.maxOfOrNull { it.colIndex } ?: -1) + 1
-            val rows = List(maxRow) { row ->
-                MutableList(maxCol) { col ->
-                    cells.find { it.rowIndex == row && it.colIndex == col }
-                        ?: TableCell(UUID.randomUUID().toString(), noteId, row, col, "")
-                }
-            }
-            _state.update { it.copy(noteId = noteId, rows = rows.toMutableList()) }
-        }
-    }
+            _state.update { it.copy(noteId = noteId, isLoading = true) }
 
-    fun onEvent(event: TableEvent) {
-        when (event) {
-            TableEvent.AddRow -> addRow()
-            TableEvent.AddColumn -> addColumn()
-            is TableEvent.UpdateCell -> updateCell(event.cell)
-            TableEvent.Save -> saveTable()
-        }
-    }
+            val note = repository.getNoteById(noteId)
+            val tableCells = repository.getTableCells(noteId)
 
-    private fun addRow() {
-        _state.update { state ->
-            val newRowIndex = state.rows.size
-            val cols = state.rows.firstOrNull()?.size ?: 0
-            val newRow = MutableList(cols) { col ->
-                TableCell(UUID.randomUUID().toString(), state.noteId, newRowIndex, col, "")
-            }
-            state.rows.add(newRow)
-            state.copy(rows = state.rows)
-        }
-    }
-
-    private fun addColumn() {
-        _state.update { state ->
-            val newColIndex = (state.rows.firstOrNull()?.size ?: 0)
-            state.rows.forEachIndexed { rowIndex, row ->
-                row.add(
-                    TableCell(UUID.randomUUID().toString(), state.noteId, rowIndex, newColIndex, "")
+            _state.update { currentState ->
+                currentState.copy(
+                    title = note?.title ?: "",
+                    cells = tableCells,
+                    isLoading = false
                 )
             }
-            state.copy(rows = state.rows)
         }
     }
 
-    private fun updateCell(cell: TableCell) {
-        _state.update { state ->
-            state.rows[cell.rowIndex][cell.colIndex] = cell
-            state.copy(rows = state.rows)
-        }
-    }
-
-    private fun saveTable() {
+    fun addRow() {
         viewModelScope.launch {
-            repository.deleteTableCells(_state.value.noteId)
-            repository.insertTableCells(_state.value.rows.flatten())
+            val currentState = _state.value
+            val newRowIndex = currentState.cells.maxByOrNull { it.rowIndex }?.rowIndex?.plus(1) ?: 0
+            val newCells = (0 until currentState.columnCount).map { colIndex ->
+                TableCell(
+                    id = UUID.randomUUID().toString(), // FIXED: Now UUID is imported
+                    noteId = currentState.noteId,
+                    rowIndex = newRowIndex,
+                    colIndex = colIndex,
+                    text = ""
+                )
+            }
+
+            _state.update { it.copy(cells = it.cells + newCells) }
+        }
+    }
+
+    fun addColumn() {
+        viewModelScope.launch {
+            val currentState = _state.value
+            val newColIndex = currentState.columnCount
+            val newCells = (0 until currentState.rowCount).map { rowIndex ->
+                TableCell(
+                    id = UUID.randomUUID().toString(), // FIXED: Now UUID is imported
+                    noteId = currentState.noteId,
+                    rowIndex = rowIndex,
+                    colIndex = newColIndex,
+                    text = ""
+                )
+            }
+
+            _state.update {
+                it.copy(
+                    cells = it.cells + newCells,
+                    columnCount = newColIndex + 1
+                )
+            }
+        }
+    }
+
+    fun updateCell(rowIndex: Int, colIndex: Int, text: String) {
+        viewModelScope.launch {
+            val currentState = _state.value
+            val cellToUpdate = currentState.cells.find {
+                it.rowIndex == rowIndex && it.colIndex == colIndex
+            }
+
+            if (cellToUpdate != null) {
+                val updatedCell = cellToUpdate.copy(text = text)
+                val updatedCells = currentState.cells.map { cell ->
+                    if (cell.id == cellToUpdate.id) updatedCell else cell
+                }
+                _state.update { it.copy(cells = updatedCells, hasUnsavedChanges = true) }
+            } else {
+                // Create new cell
+                val newCell = TableCell(
+                    id = UUID.randomUUID().toString(), // FIXED: Now UUID is imported
+                    noteId = currentState.noteId,
+                    rowIndex = rowIndex,
+                    colIndex = colIndex,
+                    text = text
+                )
+                _state.update {
+                    it.copy(
+                        cells = it.cells + newCell,
+                        hasUnsavedChanges = true
+                    )
+                }
+            }
+        }
+    }
+
+    fun saveTable() {
+        viewModelScope.launch {
+            val currentState = _state.value
+            repository.insertTableCells(currentState.cells)
+            _state.update { it.copy(hasUnsavedChanges = false) }
         }
     }
 }
+
+data class TableEditorState(
+    val noteId: String = "",
+    val title: String = "",
+    val cells: List<TableCell> = emptyList(),
+    val rowCount: Int = 3,
+    val columnCount: Int = 3,
+    val isLoading: Boolean = false,
+    val hasUnsavedChanges: Boolean = false
+)

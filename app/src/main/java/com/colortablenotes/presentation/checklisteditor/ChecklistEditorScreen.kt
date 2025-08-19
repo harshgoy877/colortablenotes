@@ -5,14 +5,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment // ADDED: Missing import
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.colortablenotes.data.local.entities.ChecklistItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,62 +24,67 @@ fun ChecklistEditorScreen(
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(noteId) {
-        viewModel.loadChecklistItems(noteId)
+        viewModel.loadNote(noteId)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Checklist") },
+                title = { Text("Edit Checklist") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.onEvent(ChecklistEvent.Save) }) {
+                    IconButton(onClick = { viewModel.saveChecklist() }) {
                         Icon(Icons.Default.Save, contentDescription = "Save")
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { viewModel.addItem() }
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Item")
+            }
         }
-    ) { padding ->
+    ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
+                .padding(paddingValues),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            item {
+                OutlinedTextField(
+                    value = state.title,
+                    onValueChange = { viewModel.updateTitle(it) },
+                    label = { Text("Title") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             itemsIndexed(state.items) { index, item ->
                 Row(
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically // FIXED: Now Alignment is imported
                 ) {
                     Checkbox(
                         checked = item.isChecked,
-                        onCheckedChange = { checked ->
-                            viewModel.onEvent(ChecklistEvent.ToggleItem(item.copy(isChecked = checked)))
-                        }
+                        onCheckedChange = { viewModel.toggleItem(index) }
                     )
-                    Spacer(Modifier.width(8.dp))
-                    TextField(
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    OutlinedTextField(
                         value = item.text,
-                        onValueChange = { text ->
-                            viewModel.onEvent(ChecklistEvent.UpdateText(item.copy(text = text)))
-                        },
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text("Item ${index + 1}") }
+                        onValueChange = { viewModel.updateItem(index, it) },
+                        placeholder = { Text("Enter item...") },
+                        modifier = Modifier.weight(1f)
                     )
-                    IconButton(onClick = { viewModel.onEvent(ChecklistEvent.Delete(item)) }) {
-                        Icon(Icons.Default.CheckBox, contentDescription = "Delete")
-                    }
-                }
-            }
-            item {
-                TextButton(onClick = { viewModel.onEvent(ChecklistEvent.Add) }) {
-                    Icon(Icons.Default.CheckBox, contentDescription = "Add")
-                    Spacer(Modifier.width(4.dp))
-                    Text("Add Item")
                 }
             }
         }

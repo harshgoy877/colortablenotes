@@ -7,63 +7,93 @@ import com.colortablenotes.data.local.entities.ChecklistItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
-import java.util.*
 
 @HiltViewModel
 class ChecklistEditorViewModel @Inject constructor(
     private val repository: NotesRepository
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(ChecklistState())
-    val state: StateFlow<ChecklistState> = _state.asStateFlow()
+    private val _state = MutableStateFlow(ChecklistEditorState())
+    val state: StateFlow<ChecklistEditorState> = _state.asStateFlow()
 
-    fun loadChecklistItems(noteId: String) {
+    fun loadNote(noteId: String) {
         viewModelScope.launch {
+            _state.update { it.copy(noteId = noteId, isLoading = true) }
+
+            val note = repository.getNoteById(noteId)
             val items = repository.getChecklistItems(noteId)
-            _state.update { it.copy(noteId = noteId, items = items.toMutableList()) }
+
+            _state.update { currentState ->
+                currentState.copy(
+                    title = note?.title ?: "",
+                    items = items,
+                    isLoading = false
+                )
+            }
         }
     }
 
-    fun onEvent(event: ChecklistEvent) {
-        when (event) {
-            is ChecklistEvent.Add -> addItem()
-            is ChecklistEvent.UpdateText -> updateText(event.item)
-            is ChecklistEvent.ToggleItem -> toggleItem(event.item)
-            is ChecklistEvent.Delete -> deleteItem(event.item)
-            ChecklistEvent.Save -> saveItems()
-        }
+    fun updateTitle(title: String) {
+        _state.update { it.copy(title = title, hasUnsavedChanges = true) }
     }
 
-    private fun addItem() {
+    fun addItem() {
+        val newItem = ChecklistItem(
+            id = UUID.randomUUID().toString(),
+            noteId = _state.value.noteId,
+            position = _state.value.items.size,
+            text = "",
+            isChecked = false
+        )
         _state.update {
-            val newList = it.items.toMutableList()
-            newList.add(ChecklistItem(UUID.randomUUID().toString(), it.noteId, newList.size, ""))
-            it.copy(items = newList)
+            it.copy(
+                items = it.items + newItem,
+                hasUnsavedChanges = true
+            )
         }
     }
 
-    private fun updateText(item: ChecklistItem) {
-        _state.update { state ->
-            state.copy(items = state.items.map { if (it.id == item.id) item else it }.toMutableList())
+    fun updateItem(index: Int, text: String) {
+        _state.update { currentState ->
+            val updatedItems = currentState.items.mapIndexed { i, item ->
+                if (i == index) item.copy(text = text) else item // FIXED: Lambda parameter issue
+            }
+            currentState.copy(items = updatedItems, hasUnsavedChanges = true)
         }
     }
 
-    private fun toggleItem(item: ChecklistItem) {
-        updateText(item)
-    }
-
-    private fun deleteItem(item: ChecklistItem) {
-        _state.update { state ->
-            val newList = state.items.filterNot { it.id == item.id }.toMutableList()
-            it.copy(items = newList)
+    fun toggleItem(index: Int) {
+        _state.update { currentState ->
+            val updatedItems = currentState.items.mapIndexed { i, item ->
+                if (i == index) item.copy(isChecked = !item.isChecked) else item // FIXED: Lambda parameter issue
+            }
+            currentState.copy(items = updatedItems, hasUnsavedChanges = true)
         }
     }
 
-    private fun saveItems() {
+    fun removeItem(index: Int) {
+        _state.update { currentState ->
+            val updatedItems = currentState.items.filterIndexed { i, _ -> i != index }
+                .mapIndexed { newIndex, item -> item.copy(position = newIndex) }
+            currentState.copy(items = updatedItems, hasUnsavedChanges = true)
+        }
+    }
+
+    fun saveChecklist() {
         viewModelScope.launch {
-            repository.deleteChecklistItems(_state.value.noteId)
-            repository.insertChecklistItems(_state.value.items)
+            val currentState = _state.value
+            repository.insertChecklistItems(currentState.items)
+            _state.update { it.copy(hasUnsavedChanges = false) }
         }
     }
 }
+
+data class ChecklistEditorState(
+    val noteId: String = "",
+    val title: String = "",
+    val items: List<ChecklistItem> = emptyList(),
+    val isLoading: Boolean = false,
+    val hasUnsavedChanges: Boolean = false
+)
