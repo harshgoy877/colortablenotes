@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 import androidx.room.ColumnInfo
+import androidx.room.Index
 
 @Entity(
     tableName = "text_notes",
@@ -14,7 +15,8 @@ import androidx.room.ColumnInfo
             childColumns = ["note_id"],
             onDelete = ForeignKey.CASCADE
         )
-    ]
+    ],
+    indices = [Index(value = ["note_id"])]
 )
 data class TextNote(
     @PrimaryKey

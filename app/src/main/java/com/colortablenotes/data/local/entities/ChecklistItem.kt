@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 import androidx.room.ColumnInfo
+import androidx.room.Index
 
 @Entity(
     tableName = "checklist_items",
@@ -14,13 +15,14 @@ import androidx.room.ColumnInfo
             childColumns = ["note_id"],
             onDelete = ForeignKey.CASCADE
         )
-    ]
+    ],
+    indices = [Index(value = ["note_id"])] // FIXED: Add index to avoid full table scans
 )
 data class ChecklistItem(
     @PrimaryKey
     val id: String,
 
-    @ColumnInfo(name = "note_id")
+    @ColumnInfo(name = "note_id") // FIXED: Explicitly name the column
     val noteId: String,
 
     @ColumnInfo(name = "position")

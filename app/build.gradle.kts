@@ -23,14 +23,15 @@ android {
             useSupportLibrary = true
         }
 
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments += mapOf(
-                    "room.schemaLocation" to "$projectDir/schemas",
-                    "room.incremental" to "true"
-                )
-            }
-        }
+        // REMOVED: This conflicts with Room plugin
+        // javaCompileOptions {
+        //     annotationProcessorOptions {
+        //         arguments += mapOf(
+        //             "room.schemaLocation" to "$projectDir/schemas",
+        //             "room.incremental" to "true"
+        //         )
+        //     }
+        // }
     }
 
     buildTypes {
@@ -85,6 +86,7 @@ android {
     }
 }
 
+// FIXED: Proper Room configuration
 room {
     schemaDirectory("$projectDir/schemas")
 }
