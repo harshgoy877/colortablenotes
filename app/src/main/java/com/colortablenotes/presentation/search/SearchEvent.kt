@@ -1,4 +1,4 @@
-package com.colortabnotes.presentation.search
+package com.colortablenotes.presentation.search
 
 sealed class SearchEvent {
     data class QueryChanged(val query: String) : SearchEvent()

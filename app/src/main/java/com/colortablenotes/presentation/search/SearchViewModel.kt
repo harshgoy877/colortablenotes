@@ -33,7 +33,7 @@ class SearchViewModel @Inject constructor(
     fun onEvent(event: SearchEvent) {
         when (event) {
             is SearchEvent.QueryChanged -> {
-                _state.update { it.copy(query = event.query) }
+                _state.update { it.copy(searchQuery = event.query) } // FIXED: Use searchQuery
                 _searchQuery.value = event.query
             }
         }

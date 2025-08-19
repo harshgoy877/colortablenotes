@@ -5,29 +5,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.paging.compose.collectAsLazyPagingItems
-import androidx.paging.compose.items
-import com.colortablenotes.presentation.components.NoteCard
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SearchScreen(
-    onNavigateBack: () -> Unit,
-    onNavigateToEditor: (String, String) -> Unit,
-    viewModel: SearchViewModel = hiltViewModel()
-) package com.colortablenotes.presentation.search
-
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -53,13 +30,13 @@ fun SearchScreen(
             TopAppBar(
                 title = {
                     OutlinedTextField(
-                        value = state.query,
+                        value = state.searchQuery,
                         onValueChange = { viewModel.onEvent(SearchEvent.QueryChanged(it)) },
                         placeholder = { Text("Search notes...") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = {
-                            if (state.query.isNotEmpty()) {
+                            if (state.searchQuery.isNotEmpty()) {
                                 IconButton(onClick = { viewModel.onEvent(SearchEvent.QueryChanged("")) }) {
                                     Icon(Icons.Filled.Clear, contentDescription = "Clear search")
                                 }
@@ -82,7 +59,6 @@ fun SearchScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // FIXED: Use proper paging items syntax
             items(
                 count = searchResults.itemCount,
                 key = searchResults.itemKey { it.id },
@@ -100,4 +76,3 @@ fun SearchScreen(
         }
     }
 }
-
