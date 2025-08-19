@@ -1,4 +1,4 @@
-package com.colortables.local.entities
+package com.colortablenotes.data.local.entities
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -20,12 +20,15 @@ data class ChecklistItem(
     @PrimaryKey
     val id: String,
 
-    @ColumnInfo
+    @ColumnInfo(name = "note_id")
     val noteId: String,
 
+    @ColumnInfo(name = "position")
     val position: Int,
 
+    @ColumnInfo(name = "text")
     val text: String,
 
+    @ColumnInfo(name = "is_checked")
     val isChecked: Boolean = false
 )

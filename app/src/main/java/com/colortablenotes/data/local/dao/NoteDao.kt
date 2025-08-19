@@ -2,10 +2,7 @@ package com.colortablenotes.data.local.dao
 
 import androidx.paging.PagingSource
 import androidx.room.*
-import com.colortablenotes.data.local.entities.Note
-import com.colortablenotes.data.local.entities.TextNote
-import com.colortablenotes.data.local.entities.ChecklistItem
-import com.colortablenotes.data.local.entities.TableCell
+import com.colortablenotes.data.local.entities.*
 import kotlinx.coroutines.flow.Flow
 
 @Dao

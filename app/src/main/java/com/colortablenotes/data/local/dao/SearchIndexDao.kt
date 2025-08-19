@@ -2,8 +2,7 @@ package com.colortablenotes.data.local.dao
 
 import androidx.room.*
 import androidx.paging.PagingSource
-import com.colortablenotes.data.local.entities.SearchIndex
-import com.colortablenotes.data.local.entities.Note
+import com.colortablenotes.data.local.entities.*
 import kotlinx.coroutines.flow.Flow
 
 @Dao

@@ -1,24 +1,19 @@
-package com.colornotes.data.repository
+package com.colortablenotes.data.repository
 
 import androidx.paging.*
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import javax.inject.Singleton
-import com.colortablenotes.data.repository
-import com.colortablenotes.data.repository
-import com.colortablenotes.data.repository
-import com.colortablenotes.data.repository
-import com.colortablenotes.data.repository
-import com.colortablenotes.data.repository
-import com.colortablenotes.data.repository
-import com.colortablenotes.data.repository
-import com.colortablenotes.data.repository
-import com.colortablenotes.data.repository
+import com.colortablenotes.data.local.dao.NoteDao
+import com.colortablenotes.data.local.dao.SearchIndexDao
+import com.colortablenotes.data.local.database.NotesDatabase
+import com.colortablenotes.data.local.entities.*
+import java.util.*
 
 @Singleton
 class NotesRepository @Inject constructor(
     private val noteDao: NoteDao,
-    private val searchDao: SearchDao,
+    private val searchIndexDao: SearchIndexDao,
     private val database: NotesDatabase
 ) {
 
@@ -48,16 +43,13 @@ class NotesRepository @Inject constructor(
                 prefetchDistance = 5,
                 enablePlaceholders = false
             ),
-            pagingSourceFactory = {
-                searchDao.searchNotes(query)
-            }
+            pagingSourceFactory = { searchIndexDao.searchNotesPaged(query) }
         ).flow
     }
 
     fun getPinnedNotes(): Flow<List<Note>> = noteDao.getPinnedNotes()
 
-    suspend fun getNoteById(noteId: String): Note? =
-        noteDao.getNoteById(noteId)
+    suspend fun getNoteById(noteId: String): Note? = noteDao.getNoteById(noteId)
 
     suspend fun createNote(
         type: String,
@@ -105,7 +97,7 @@ class NotesRepository @Inject constructor(
             val note = noteDao.getNoteById(noteId)
             if (note != null) {
                 noteDao.deleteNote(note)
-                searchDao.deleteSearchIndex(noteId)
+                searchIndexDao.deleteSearchIndex(noteId)
             }
             Result.success(Unit)
         } catch (e: Exception) {
@@ -124,26 +116,19 @@ class NotesRepository @Inject constructor(
         }
     }
 
-    suspend fun getTextNote(noteId: String): TextNote? =
-        noteDao.getTextNote(noteId)
+    suspend fun getTextNote(noteId: String): TextNote? = noteDao.getTextNote(noteId)
 
-    suspend fun insertChecklistItems(items: List<ChecklistItem>) =
-        noteDao.insertChecklistItems(items)
+    suspend fun insertChecklistItems(items: List<ChecklistItem>) = noteDao.insertChecklistItems(items)
 
-    suspend fun getChecklistItems(noteId: String): List<ChecklistItem> =
-        noteDao.getChecklistItems(noteId)
+    suspend fun getChecklistItems(noteId: String): List<ChecklistItem> = noteDao.getChecklistItems(noteId)
 
-    suspend fun deleteChecklistItems(noteId: String) =
-        noteDao.deleteChecklistItems(noteId)
+    suspend fun deleteChecklistItems(noteId: String) = noteDao.deleteChecklistItems(noteId)
 
-    suspend fun insertTableCells(cells: List<TableCell>) =
-        noteDao.insertTableCells(cells)
+    suspend fun insertTableCells(cells: List<TableCell>) = noteDao.insertTableCells(cells)
 
-    suspend fun getTableCells(noteId: String): List<TableCell> =
-        noteDao.getTableCells(noteId)
+    suspend fun getTableCells(noteId: String): List<TableCell> = noteDao.getTableCells(noteId)
 
-    suspend fun deleteTableCells(noteId: String) =
-        noteDao.deleteTableCells(noteId)
+    suspend fun deleteTableCells(noteId: String) = noteDao.deleteTableCells(noteId)
 
     private suspend fun updateSearchIndex(noteId: String) {
         val note = noteDao.getNoteById(noteId) ?: return
@@ -166,13 +151,13 @@ class NotesRepository @Inject constructor(
         }
 
         val searchIndex = SearchIndex(
-            noteId = note.id,
+            noteId = noteId,
             title = note.title,
             textBody = textBody,
             checklistJoined = checklistJoined,
             tableFlattened = tableFlattened
         )
 
-        searchDao.insertSearchIndex(searchIndex)
+        searchIndexDao.insertSearchIndex(searchIndex)
     }
 }

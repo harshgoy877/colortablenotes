@@ -32,10 +32,14 @@ object AppModule {
     }
 
     @Provides
-    fun provideNoteDao(database: NotesDatabase): NoteDao = database.noteDao()
+    fun provideNoteDao(database: NotesDatabase): NoteDao {
+        return database.noteDao()
+    }
 
     @Provides
-    fun provideSearchIndexDao(database: NotesDatabase): SearchIndexDao = database.searchIndexDao()
+    fun provideSearchIndexDao(database: NotesDatabase): SearchIndexDao {
+        return database.searchIndexDao()
+    }
 
     @Provides
     @Singleton
@@ -43,5 +47,7 @@ object AppModule {
         noteDao: NoteDao,
         searchIndexDao: SearchIndexDao,
         database: NotesDatabase
-    ): NotesRepository = NotesRepository(noteDao, searchIndexDao, database)
+    ): NotesRepository {
+        return NotesRepository(noteDao, searchIndexDao, database)
+    }
 }
