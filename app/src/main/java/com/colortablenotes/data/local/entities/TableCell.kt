@@ -1,4 +1,5 @@
-package com.colortables.local.entities
+package com.colortablenotes.data.local.entities  // CORRECT
+
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
