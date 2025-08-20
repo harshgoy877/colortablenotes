@@ -1,91 +1,57 @@
 package com.colortablenotes.presentation.checklisteditor
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment // ADDED: Missing import
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChecklistEditorScreen(
     noteId: String,
-    onNavigateBack: () -> Unit,
-    viewModel: ChecklistEditorViewModel = hiltViewModel()
+    onNavigateBack: () -> Unit
 ) {
-    val state by viewModel.state.collectAsState()
-
-    LaunchedEffect(noteId) {
-        viewModel.loadNote(noteId)
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Edit Checklist") },
+                title = { Text("Checklist Editor") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.saveChecklist() }) {
-                        Icon(Icons.Default.Save, contentDescription = "Save")
-                    }
                 }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { viewModel.addItem() }
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Item")
-            }
         }
     ) { paddingValues ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            contentAlignment = Alignment.Center
         ) {
-            item {
-                OutlinedTextField(
-                    value = state.title,
-                    onValueChange = { viewModel.updateTitle(it) },
-                    label = { Text("Title") },
-                    modifier = Modifier.fillMaxWidth()
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Checklist Editor",
+                    style = MaterialTheme.typography.headlineMedium
                 )
-            }
-
-            itemsIndexed(state.items) { index, item ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically // FIXED: Now Alignment is imported
-                ) {
-                    Checkbox(
-                        checked = item.isChecked,
-                        onCheckedChange = { viewModel.toggleItem(index) }
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    OutlinedTextField(
-                        value = item.text,
-                        onValueChange = { viewModel.updateItem(index, it) },
-                        placeholder = { Text("Enter item...") },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Coming Soon!",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Note ID: $noteId",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

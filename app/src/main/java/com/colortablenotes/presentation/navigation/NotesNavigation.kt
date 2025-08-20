@@ -1,6 +1,6 @@
 package com.colortablenotes.presentation.navigation
 
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -14,8 +14,21 @@ import com.colortablenotes.presentation.search.SearchScreen
 @Composable
 fun NotesNavigation(
     handleSharedText: (String) -> Unit = {},
+    pendingSharedText: String? = null,
+    shouldNavigateToEditor: Boolean = false,
+    onSharedTextHandled: () -> Unit = {},
     navController: NavHostController = rememberNavController()
 ) {
+    // Handle shared text navigation
+    LaunchedEffect(shouldNavigateToEditor, pendingSharedText) {
+        if (shouldNavigateToEditor && pendingSharedText != null) {
+            navController.navigate("text_editor/new") {
+                launchSingleTop = true
+            }
+            onSharedTextHandled()
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = "home"
@@ -47,9 +60,15 @@ fun NotesNavigation(
                 onBack = { navController.popBackStack() },
                 onOpenNote = { noteId, type ->
                     when (type) {
-                        "TEXT" -> navController.navigate("text_editor/$noteId")
-                        "CHECKLIST" -> navController.navigate("checklist_editor/$noteId")
-                        "TABLE" -> navController.navigate("table_editor/$noteId")
+                        "TEXT" -> navController.navigate("text_editor/$noteId") {
+                            popUpTo("home")
+                        }
+                        "CHECKLIST" -> navController.navigate("checklist_editor/$noteId") {
+                            popUpTo("home")
+                        }
+                        "TABLE" -> navController.navigate("table_editor/$noteId") {
+                            popUpTo("home")
+                        }
                     }
                 }
             )

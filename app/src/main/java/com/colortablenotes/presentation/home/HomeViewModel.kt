@@ -2,61 +2,138 @@ package com.colortablenotes.presentation.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingData
 import androidx.paging.cachedIn
-import com.colortablenotes.data.repository.NotesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import com.colortablenotes.data.local.entities.Note
+import com.colortablenotes.data.repository.NotesRepository
 import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val repository: NotesRepository
+    private val notesRepository: NotesRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
     val state: StateFlow<HomeState> = _state.asStateFlow()
 
-    val notes = repository.getNotesPaged().cachedIn(viewModelScope)
+    private val _uiEvent = MutableSharedFlow<HomeUiEvent>()
+    val uiEvent: SharedFlow<HomeUiEvent> = _uiEvent.asSharedFlow()
+
+    val notes: Flow<PagingData<Note>> = notesRepository
+        .getNotesPaged(
+            noteType = _state.value.selectedNoteType,
+            sortBy = _state.value.sortOrder
+        )
+        .cachedIn(viewModelScope)
+
+    val pinnedNotes: StateFlow<List<Note>> = notesRepository
+        .getPinnedNotes()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     fun onEvent(event: HomeEvent) {
         when (event) {
-            is HomeEvent.CreateNote -> createNote(event.type)
-            HomeEvent.ClearNewNoteCreated -> clearNewNoteCreated() // ADDED: Missing branch
-            is HomeEvent.SelectNote -> selectNote(event.noteId) // ADDED: Missing branch
-            is HomeEvent.UpdateFilter -> updateFilter(event.filter) // ADDED: Missing branch
-            is HomeEvent.UpdateSearchQuery -> updateSearchQuery(event.query) // ADDED: Missing branch
-            is HomeEvent.UpdateSorting -> updateSorting(event.sortBy) // ADDED: Missing branch
-        }
-    }
-
-    private fun createNote(type: String) {
-        viewModelScope.launch {
-            val result = repository.createNote(type, "New Note")
-            result.onSuccess { noteId ->
-                _state.update { it.copy(newlyCreatedNoteId = noteId) }
+            is HomeEvent.ChangeNoteType -> {
+                _state.value = _state.value.copy(selectedNoteType = event.noteType)
+            }
+            is HomeEvent.ChangeSortOrder -> {
+                _state.value = _state.value.copy(sortOrder = event.sortOrder)
+            }
+            is HomeEvent.ToggleSelectionMode -> {
+                _state.value = _state.value.copy(
+                    isSelectionMode = !_state.value.isSelectionMode,
+                    selectedNotes = if (_state.value.isSelectionMode) emptySet() else _state.value.selectedNotes
+                )
+            }
+            is HomeEvent.SelectNote -> {
+                val selectedNotes = _state.value.selectedNotes.toMutableSet()
+                if (selectedNotes.contains(event.noteId)) {
+                    selectedNotes.remove(event.noteId)
+                } else {
+                    selectedNotes.add(event.noteId)
+                }
+                _state.value = _state.value.copy(selectedNotes = selectedNotes)
+            }
+            is HomeEvent.DeleteSelectedNotes -> {
+                deleteSelectedNotes()
+            }
+            is HomeEvent.PinNote -> {
+                pinNote(event.noteId)
+            }
+            is HomeEvent.UnpinNote -> {
+                unpinNote(event.noteId)
+            }
+            HomeEvent.ClearSelection -> {
+                _state.value = _state.value.copy(
+                    isSelectionMode = false,
+                    selectedNotes = emptySet()
+                )
             }
         }
     }
 
-    // ADDED: All missing functions for the when branches
-    private fun clearNewNoteCreated() {
-        _state.update { it.copy(newlyCreatedNoteId = null) }
+    private fun deleteSelectedNotes() {
+        viewModelScope.launch {
+            val selectedNotes = _state.value.selectedNotes
+            var successCount = 0
+            var failureCount = 0
+
+            selectedNotes.forEach { noteId ->
+                notesRepository.deleteNote(noteId).fold(
+                    onSuccess = { successCount++ },
+                    onFailure = { failureCount++ }
+                )
+            }
+
+            _state.value = _state.value.copy(
+                isSelectionMode = false,
+                selectedNotes = emptySet()
+            )
+
+            if (successCount > 0) {
+                _uiEvent.emit(HomeUiEvent.ShowMessage("$successCount notes deleted"))
+            }
+            if (failureCount > 0) {
+                _uiEvent.emit(HomeUiEvent.ShowError("Failed to delete $failureCount notes"))
+            }
+        }
     }
 
-    private fun selectNote(noteId: String) {
-        _state.update { it.copy(selectedNoteId = noteId) }
+    private fun pinNote(noteId: String) {
+        viewModelScope.launch {
+            try {
+                val note = notesRepository.getNoteById(noteId)
+                if (note != null) {
+                    notesRepository.updateNote(note.copy(pinned = true)).fold(
+                        onSuccess = { _uiEvent.emit(HomeUiEvent.ShowMessage("Note pinned")) },
+                        onFailure = { _uiEvent.emit(HomeUiEvent.ShowError("Failed to pin note")) }
+                    )
+                }
+            } catch (e: Exception) {
+                _uiEvent.emit(HomeUiEvent.ShowError("Failed to pin note"))
+            }
+        }
     }
 
-    private fun updateFilter(filter: String) {
-        _state.update { it.copy(currentFilter = filter) }
-    }
-
-    private fun updateSearchQuery(query: String) {
-        _state.update { it.copy(searchQuery = query) }
-    }
-
-    private fun updateSorting(sortBy: String) {
-        _state.update { it.copy(sortBy = sortBy) }
+    private fun unpinNote(noteId: String) {
+        viewModelScope.launch {
+            try {
+                val note = notesRepository.getNoteById(noteId)
+                if (note != null) {
+                    notesRepository.updateNote(note.copy(pinned = false)).fold(
+                        onSuccess = { _uiEvent.emit(HomeUiEvent.ShowMessage("Note unpinned")) },
+                        onFailure = { _uiEvent.emit(HomeUiEvent.ShowError("Failed to unpin note")) }
+                    )
+                }
+            } catch (e: Exception) {
+                _uiEvent.emit(HomeUiEvent.ShowError("Failed to unpin note"))
+            }
+        }
     }
 }
